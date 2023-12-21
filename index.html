@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tietovisapeli</title>
+</head>
+<body>
+
+  <h1>Tietovisapeli</h1>
+
+  <form id="lisaaKysymysForm">
+    <label for="kysymys">Kysymys:</label>
+    <input type="text" id="kysymys" name="kysymys" required>
+    <label for="vastaus">Vastaus:</label>
+    <input type="text" id="vastaus" name="vastaus" required>
+    <button type="submit">Lisää kysymys</button>
+  </form>
+
+  <hr>
+
+ 
+  <table id="kysymyksetTable">
+    <thead>
+      <tr>
+        <th>Kysymys</th>
+        <th>Vastaus</th>
+        <th>Poista</th>
+      </tr>
+    </thead>
+    <tbody id="kysymyksetLista"></tbody>
+  </table>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const lisaaKysymysForm = document.getElementById('lisaaKysymysForm');
+      const kysymyksetTable = document.getElementById('kysymyksetTable');
+      const kysymyksetLista = document.getElementById('kysymyksetLista');
+
+      
+      lisaaKysymysForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const kysymysInput = document.getElementById('kysymys');
+        const vastausInput = document.getElementById('vastaus');
+
+        // Lähetä POST-pyyntö REST-endpointille
+        const response = await fetch('http://localhost:3002/kysymykset', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            kysymys: kysymysInput.value,
+            vastaus: vastausInput.value,
+          }),
+        });
+
+        const data = await response.json();
+        console.log(data);
+
+        // Tyhjennä kentät
+        kysymysInput.value = '';
+        vastausInput.value = '';
+        paivitaKysymyksetLista();
+      });
+
+      // Päivitä kysymysten lista
+      paivitaKysymyksetLista();
+
+      // Lataa ja päivitä lista
+      async function paivitaKysymyksetLista() {
+        // Lähetä GET-pyyntö REST-endpointille
+        const response = await fetch('http://localhost:3002/kysymykset');
+        const data = await response.json();
+
+        // Tyhjennä lista
+        kysymyksetLista.innerHTML = '';
+
+        // Lisää kysymykset listaan
+        data.forEach((kysymys) => {
+          const tableRow = document.createElement('tr');
+          tableRow.innerHTML = `
+            <td>${kysymys.kysymys}</td>
+            <td>${kysymys.vastaus}</td>
+            <td><button class="poistaButton" data-id="${kysymys.id}">Poista</button></td>
+          `;
+          kysymyksetLista.appendChild(tableRow);
+        });
+
+        
+        document.querySelectorAll('.poistaButton').forEach(button => {
+          button.addEventListener('click', (event) => {
+            const kysymysId = event.target.dataset.id;
+            poistaKysymys(kysymysId);
+          });
+        });
+      }
+
+      // Poista kysymys
+      async function poistaKysymys(id) {
+        // Lähetä DELETE-pyyntö endpointille
+        const response = await fetch(`http://localhost:3002/kysymykset/${id}`, {
+          method: 'DELETE',
+        });
+
+        const data = await response.json();
+        console.log(data);
+
+        // Päivitä kysymys lista poistamisen jälkeen
+        paivitaKysymyksetLista();
+      }
+    });
+  </script>
+
+  </body>
+</html>
